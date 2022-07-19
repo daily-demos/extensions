@@ -11,6 +11,10 @@ let state = {
   participants: [{ user_name: "", roomUrl: "" }],
 };
 
+let domain = "";
+let room = "";
+let hostname = "";
+
 async function handleOnStateUpdate(s = {}, call) {
   state = { ...state, ...s };
 
@@ -30,10 +34,10 @@ async function handleOnStateUpdate(s = {}, call) {
   }
 }
 
-export function connect({ room = "", domain = "", call }) {
+function connect({ room = "", domain = "", call }) {
   const key = `${domain}/${room}/breakout`;
   state.initialRoomUrl = `https://${domain}.daily.co/${room}`;
-  socket = new Socket({ key });
+  socket = new Socket({ key, hostname: hostname });
   socket.onStateUpdate((state) => {
     handleOnStateUpdate(state, call);
   });
@@ -59,7 +63,7 @@ function randomizeParticipants(participants = {}, roomUrls = []) {
 }
 
 async function start(call) {
-  const response = await fetch("/create-rooms", {
+  const response = await fetch(`//${hostname || ""}/create-rooms`, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -92,3 +96,32 @@ function end() {
     breakoutStarted: false,
   });
 }
+
+function configure(config) {
+  domain = config.domain;
+  room = config.room;
+  hostname = config.hostname;
+}
+
+function beforeCreateFrame(parentEl, properties) {
+  if (!properties.customTrayButtons) {
+    properties.customTrayButtons = {};
+  }
+  properties.customTrayButtons.toggleBreakout = {
+    iconPath: "https://www.svgrepo.com/show/207394/flash.svg",
+    label: "Breakout",
+    tooltip: "Breakout",
+  };
+
+  return [parentEl, properties];
+}
+
+function afterCreateFrame(call) {
+  connect({ call, domain, room });
+}
+
+export default {
+  afterCreateFrame,
+  beforeCreateFrame,
+  configure,
+};

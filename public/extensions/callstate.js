@@ -1,9 +1,7 @@
-import daily from "./core.js";
-
 let state = {};
 let updateHandlers = [];
-let call = {};
 let waitingForSync = false;
+let call = null;
 const SYNC_MAX_WAITING_TIME = 7000;
 const UPDATE_MSG = "update-call-state";
 const REQUEST_MSG = "request-call-state";
@@ -17,12 +15,12 @@ export default {
     updateHandlers[key].push(callback);
   },
 
-  updateCallState: function (key, newState, broadcast = true) {
+  updateCallState: function (key, newState, broadcast = true, call = call) {
     // used for an extension to request a state update,
     // which will also get broadcast to everybody else on the call.
     applyStateUpdate(key, newState);
     if (broadcast) {
-      broadcastStateUpdate(key, newState);
+      broadcastStateUpdate(key, newState, call);
     }
   },
 
@@ -31,7 +29,7 @@ export default {
 
 /* Private implementation */
 
-daily.afterCreateFrame((c) => {
+export function afterCreateFrame(c) {
   call = c;
   // listen for requests for state from new peers
   call.on("app-message", (e) => {
@@ -70,7 +68,7 @@ daily.afterCreateFrame((c) => {
       requestState();
     }, requestDelay);
   });
-});
+}
 
 function applyStateUpdates(newState) {
   // internal handler that applies all state updates
@@ -97,7 +95,7 @@ function applyStateUpdate(key = "", newState) {
   }
 }
 
-function broadcastStateUpdate(key, newState) {
+function broadcastStateUpdate(key, newState, call) {
   const ns = {};
   ns[key] = newState;
   call.sendAppMessage({ message: UPDATE_MSG, state: ns });

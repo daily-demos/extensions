@@ -1,5 +1,6 @@
 // @ts-check
 const express = require("express");
+const cors = require("cors");
 const app = express();
 const serveIndex = require("serve-index");
 const http = require("http");
@@ -38,6 +39,8 @@ io.of(/^\/.*$/).on("connection", (socket) => {
     socket.nsp.emit("state", state[nsp]);
   });
 });
+
+app.use(cors());
 
 // Proxy to Daily API to create rooms for breakout rooms
 app.post("/create-rooms", async (req, res) => {

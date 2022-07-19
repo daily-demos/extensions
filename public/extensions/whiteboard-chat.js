@@ -1,4 +1,3 @@
-import daily from "./core.js";
 import iframe from "./iframe.js";
 import callstate from "./callstate.js";
 
@@ -11,15 +10,15 @@ let props = {};
 iframe.configure({ url: "about:blank", buttons: {}, showUrl: false });
 
 /* Public interface */
-export default {
-  configure: function (p) {
-    Object.assign(props, p);
-  },
-};
+
+export function configure(p) {
+  console.log("[whiteboard] configure", p);
+  Object.assign(props, p);
+}
 
 /* Private implementation */
 
-async function iframeUrl(e) {
+async function iframeUrl(e, call) {
   let src = "https://www.whiteboard.chat/apiaccess/createjoin/";
   // use a per-room whiteboard for now
   const participant = e.participants.local;
@@ -38,12 +37,17 @@ async function iframeUrl(e) {
 }
 
 function handleWcButton() {
-  callstate.updateCallState("iframe", {
-    open: !callstate.state.iframe?.open,
-  });
+  callstate.updateCallState(
+    "iframe",
+    {
+      open: !callstate.state.iframe?.open,
+    },
+    true,
+    call
+  );
 }
 
-daily.beforeCreateFrame((parentEl, properties) => {
+export function beforeCreateFrame(parentEl, properties) {
   // TODO: maybe namespace shared resources like tray buttons?
   if (props.teacher) {
     if (!properties.customTrayButtons) {
@@ -57,16 +61,15 @@ daily.beforeCreateFrame((parentEl, properties) => {
   }
 
   return [parentEl, properties];
-});
+}
 
-daily.afterCreateFrame(async (c) => {
+export async function afterCreateFrame(c) {
   call = c;
-
   call.on("joined-meeting", async (e) => {
     // let the teacher set the whiteboard URL
     // for everybody
-    let url = await iframeUrl(e);
-    callstate.updateCallState("iframe", { url });
+    let url = await iframeUrl(e, call);
+    callstate.updateCallState("iframe", { url }, true, call);
   });
 
   call.on("custom-button-click", (e) => {
@@ -76,4 +79,10 @@ daily.afterCreateFrame(async (c) => {
         break;
     }
   });
-});
+}
+
+export default {
+  beforeCreateFrame,
+  afterCreateFrame,
+  configure,
+};

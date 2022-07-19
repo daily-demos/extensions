@@ -1,6 +1,8 @@
-import daily from "./core.js";
+// import daily from "./core.js";
 
-daily.afterCreateFrame((call) => {
+function afterCreateFrame(call) {
+  console.log("Initializing eventlogger extension");
+
   [
     "participant-left",
     "error",
@@ -16,6 +18,6 @@ daily.afterCreateFrame((call) => {
       console.log(`🔥 ${e}:`, ev);
     });
   });
-});
+}
 
-export default {};
+export default { afterCreateFrame };
